@@ -1,8 +1,28 @@
-// The looked down upon for some reason jQuery Way (I don't know typescript but I should learn)
+/*
+  ___   _____.__                                      __   
+ / /  _/ ____\__| ____   ________  _  __ ____   _____/  |_ 
+ \ \  \   __\|  |/    \ /  ___/\ \/ \/ // __ \_/ __ \   __\
+ < <   |  |  |  |   |  \\___ \  \     /\  ___/\  ___/|  |  
+ / /   |__|  |__|___|  /____  >  \/\_/  \___  >\___  >__|  
+ \_\_                \/     \/              \/     \/      
+
+ */
 window.Webflow || (window.Webflow = []);
 window.Webflow.push(() => {
-    //Focus the phone number input by default
+    //Add meta tag to fix mobile issue of autozoom when input is focused in iOS Safari (This doesn't effect zooming just a workaround to remove the ugly autozoom)
+    var meta = document.createElement('meta');
+    meta.name = "viewport";
+    meta.content = "width=device-width, initial-scale=1, maximum-scale=1";
+    document.getElementsByTagName('head')[0].appendChild(meta);
+    //Focus the phone number input by default (works for desktop only. iOS safari requires user interaction first)
+    document.getElementById('phoneNumber').autofocus = true;
     $('#phoneNumber').focus();
+    //Turn on caching for certain requests
+    $.ajaxPrefilter(function (options) {
+        if (options.type === 'GET' && options.dataType === 'script') {
+            options.cache = true;
+        }
+    });
     $.getScript("https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js", function (data, textStatus, jqxhr) {
         if (textStatus === "success") {
             var flagsAPI = "https://restcountries.com/v3.1/all?fields=name,cca2,idd,flags";
@@ -11,7 +31,7 @@ window.Webflow.push(() => {
             var ccName = "United States";
             //Detect Country Code (This would go into its own service in prod with the api key hidden using something like vercel and next.js but just for the sake of a quick demo)
             var request = new XMLHttpRequest();
-            request.open('GET', 'https://api.ipdata.co/?api-key=test');
+            request.open('GET', 'https://api.ipdata.co/?api-key=870e4fa099675bdb626a8de9fc6991ab2edfc533c956fba18244f390');
             request.setRequestHeader('Accept', 'application/json');
             request.onreadystatechange = function () {
                 if (this.readyState === 4) {
@@ -32,6 +52,7 @@ window.Webflow.push(() => {
                         obj.id = obj.cca2;
                         return obj;
                     });
+                    //Move the autodetected country to be the first option in the select
                     var objToMove = "";
                     var objToMoveIdx = "";
                     results.some(function (elem, index) {
@@ -50,7 +71,8 @@ window.Webflow.push(() => {
                         var $cca2 = $('<span><img src="' + cca2.flags.svg + '" loading="lazy" data-element="flag" class="prefix-dropdown_flag" /><span class="cca2-text">' + cca2.id + '</span> <span class="cca2-separation">|</span> <span class="cca2-name-common">' + cca2.name.common + '</span></span>');
                         return $cca2;
                     };
-                    //Initialize select2 and customize the look and feel
+                    //Initialize select2 and customize the look and feel (replacing the webflow dropdown but keeping the styles from it)
+                    $('#HIDE-WF-DROPDOWN').addClass('hidden');
                     $('.phone-prefix-select2').select2({
                         data: results,
                         templateResult: template,
@@ -60,7 +82,6 @@ window.Webflow.push(() => {
                                 ccCode = ccCode.concat(data.idd.suffixes[0]);
                             }
                             $('[name="countryCode"]').val(ccCode);
-                            $('#HIDE-WF-DROPDOWN').addClass('hidden');
                             var $data = $('<span><img src="' + data.flags.svg + '" loading="lazy" data-element="flag" class="prefix-dropdown_flag" /> <span class="cc-code">' + ccCode + '</span></span>');
                             if (data.id === '') { // adjust for custom placeholder values
                                 return 'begin typing to search';
@@ -79,6 +100,10 @@ window.Webflow.push(() => {
                     //Placeholder for select2 search
                     $('#phone-prefix-select').one('select2:open', function (e) {
                         $('input.select2-search__field').prop('placeholder', ' Begin typing to search...');
+                    });
+                    //Auto focus search input when clicking the select2 dropdown
+                    $('.select2-container').click(function (e) {
+                        $(e.currentTarget).prev('select').data('select2').$dropdown.find('.select2-search__field').focus();
                     });
                 },
                 //Catch any errors
