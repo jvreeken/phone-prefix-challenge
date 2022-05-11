@@ -22,4 +22,7 @@ typings/
 *.tgz
 
 # dotenv environment variables file
-.env.DS_Store
+.env
+
+# Files added by macOS for indexing
+.DS_Store
